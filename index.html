@@ -4,29 +4,77 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Chemie-Simulationen</title>
+
   <style>
-    body{font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;margin:24px}
-    h1{margin:0 0 12px 0}
-    .grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));max-width:900px}
-    a.card{display:block;padding:16px;border:1px solid #ddd;border-radius:14px;text-decoration:none;color:inherit}
-    a.card:hover{border-color:#999}
-    .small{color:#555;font-size:0.95rem;margin-top:6px}
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      margin: 0;
+      padding: 24px;
+      background: #f7f7f7;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 20px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    a.card {
+      display: block;
+      padding: 24px;
+      background: white;
+      border-radius: 16px;
+      text-decoration: none;
+      color: #000;
+      border: 1px solid #ddd;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    a.card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+    }
+
+    .title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .desc {
+      color: #555;
+      font-size: 0.95rem;
+    }
   </style>
 </head>
+
 <body>
+
   <h1>Chemie-Simulationen</h1>
-  <p class="small">Bitte eine Simulation auswählen:</p>
 
   <div class="grid">
-    <a class="card" href="./salze/">
-      <strong>Salze-identifizieren</strong>
-      <div class="small">Brenner-entzünden</div>
+    <a class="card" href="./Salze-identifizieren/">
+      <div class="title">Salze identifizieren</div>
+      <div class="desc">
+        Nachweisreaktionen und Flammenprobe
+      </div>
     </a>
 
-    <a class="card" href="./flammenprobe/">
-      <strong>Flammenprobe</strong>
-      <div class="small">Farben zuordnen und auswerten</div>
+    <a class="card" href="./Brenner-entzünden/">
+      <div class="title">Brenner entzünden</div>
+      <div class="desc">
+        Sicherer Umgang mit dem Gasbrenner
+      </div>
     </a>
   </div>
+
 </body>
 </html>
+
