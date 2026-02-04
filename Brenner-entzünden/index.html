@@ -1,0 +1,1008 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Übungsspiel: Gasbrenner sicher entzünden</title>
+  <style>
+    :root{
+      --bg:#0f172a;
+      --text:#e5e7eb;
+      --muted:#94a3b8;
+      --good:#22c55e;
+      --warn:#f59e0b;
+      --bad:#ef4444;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;
+      background:radial-gradient(1200px 700px at 30% 10%, #1f2a44 0%, var(--bg) 50%, #050814 100%);
+      color:var(--text);
+    }
+    .wrap{ max-width:1100px; margin:0 auto; padding:18px 14px 28px; }
+    header{ margin-bottom:14px; }
+    h1{ margin:0; font-size:18px; font-weight:750; letter-spacing:.2px; }
+    .sub{ margin:6px 0 0 0; color:var(--muted); font-size:13px; line-height:1.35; max-width:90ch; }
+
+    .grid{ display:grid; grid-template-columns: 1.25fr .75fr; gap:14px; }
+    @media (max-width: 920px){ .grid{ grid-template-columns: 1fr; } }
+
+    .card{
+      background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:14px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.35);
+      overflow:hidden;
+      position:relative;
+    }
+    .card .inner{ padding:14px; }
+
+    .bubble{
+      position:relative;
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:14px;
+      padding:12px;
+      margin-bottom:12px;
+      min-height:54px;
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+    }
+    .bubble::after{
+      content:"";
+      position:absolute;
+      left:30px;
+      bottom:-10px;
+      width:0;height:0;
+      border-left:10px solid transparent;
+      border-right:10px solid transparent;
+      border-top:10px solid rgba(255,255,255,.10);
+      filter:drop-shadow(0 2px 0 rgba(0,0,0,.25));
+    }
+    .bubble .tag{
+      flex:0 0 auto;
+      font-size:12px;
+      padding:3px 8px;
+      border-radius:999px;
+      background:rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.12);
+      color:var(--muted);
+      margin-top:1px;
+      white-space:nowrap;
+    }
+    .bubble .txt{ font-size:14px; line-height:1.35; }
+
+    .stage{
+      position:relative;
+      height:600px;
+      background:
+        radial-gradient(700px 320px at 45% 30%, rgba(255,255,255,.04), transparent 65%),
+        linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.015));
+      border-top:1px solid rgba(255,255,255,.06);
+      overflow:hidden;
+      touch-action:none;
+    }
+
+    .hintrow{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      padding:10px 14px 12px;
+      border-top:1px solid rgba(255,255,255,.06);
+      background:rgba(0,0,0,.12);
+      align-items:center;
+      justify-content:space-between;
+    }
+    .badges{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    .badge{
+      font-size:12px;
+      padding:4px 10px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.06);
+      color:var(--muted);
+    }
+    .badge strong{ color:var(--text); font-weight:800; }
+
+    button{
+      appearance:none;
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(255,255,255,.06);
+      color:var(--text);
+      padding:8px 10px;
+      border-radius:10px;
+      cursor:pointer;
+      font-weight:700;
+      font-size:13px;
+    }
+    button:hover{ background:rgba(255,255,255,.10) }
+    button:active{ transform:translateY(1px) }
+
+    .panelTitle{
+      font-weight:800;
+      font-size:13px;
+      color:var(--muted);
+      letter-spacing:.4px;
+      text-transform:uppercase;
+      margin:0 0 10px 0;
+    }
+    .toolbox{ display:grid; gap:12px; }
+    .tool{
+      background:rgba(0,0,0,.18);
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:14px;
+      padding:12px;
+    }
+    .tool p{ margin:0; color:var(--muted); font-size:13px; line-height:1.35; }
+    .small{ font-size:12px; color:var(--muted); margin-top:10px; }
+
+    .burnerWrap{
+      position:absolute; left:28px; top:34px;
+      width:420px; height:520px;
+      user-select:none;
+      z-index:5;
+    }
+    .matchArea{
+      position:absolute; right:26px; top:56px;
+      width:340px; height:250px;
+      user-select:none;
+      z-index:4;
+    }
+    .valveWrap{
+      position:absolute; right:26px; bottom:40px;
+      width:340px; height:220px;
+      user-select:none;
+      z-index:4;
+    }
+
+    .clickable{ cursor:pointer; }
+    .glow:hover{ filter: drop-shadow(0 0 10px rgba(147,197,253,.22)); }
+
+    /* Draggable match */
+    .dragMatch{
+      position:absolute;
+      width:185px; height:30px;
+      border-radius:999px;
+      display:flex; align-items:center;
+      padding:0 10px;
+      gap:10px;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.07);
+      box-shadow:0 10px 20px rgba(0,0,0,.35);
+      cursor:grab;
+      z-index:100;
+      touch-action:none;
+      user-select:none;
+    }
+    .dragMatch:active{ cursor:grabbing; }
+
+    /* Match visuals:
+       - red head is the "Reibekopf"
+       - flame must appear ON THE RED END
+       - after burner ignition, flame disappears and head looks charred */
+    .matchHead{
+      width:20px; height:20px; border-radius:7px;
+      background:linear-gradient(180deg,#fca5a5,#ef4444);
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,.25);
+      position:relative;
+      flex:0 0 auto;
+    }
+    .matchStick{
+      flex:1; height:12px; border-radius:999px;
+      background:linear-gradient(180deg,#f4d3a3,#c89255);
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,.20);
+      position:relative; overflow:hidden;
+    }
+    .matchStick::after{
+      content:""; position:absolute; inset:0;
+      background:repeating-linear-gradient(90deg, rgba(0,0,0,.06) 0 6px, rgba(255,255,255,.02) 6px 12px);
+      opacity:.35;
+    }
+
+    /* Flame on the red head */
+    .matchFlame{
+      position:absolute;
+      left:-2px; top:-8px;   /* sits on the red head */
+      width:22px; height:22px;
+      border-radius:999px;
+      background:radial-gradient(circle at 40% 30%, #fff7c2 0%, #fbbf24 45%, #ef4444 100%);
+      box-shadow:0 0 22px rgba(245,158,11,.55);
+      display:none;
+      pointer-events:none;
+    }
+    .dragMatch.lit .matchFlame{ display:block; }
+
+    /* Charred state after it went out */
+    .dragMatch.burnt .matchHead{
+      background:linear-gradient(180deg,#7c7c7c,#2f2f2f);
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,.35);
+    }
+    .dragMatch.burnt .matchStick{
+      background:linear-gradient(180deg,#d1b58b,#805c34);
+      filter:saturate(.9) brightness(.95);
+    }
+    .dragMatch.burnt .matchStick::after{
+      opacity:.55;
+    }
+
+    .dropZone{
+      outline:2px dashed rgba(255,255,255,.16);
+      outline-offset:6px;
+      border-radius:14px;
+    }
+    .zoneOk{ outline-color: rgba(34,197,94,.55); box-shadow:0 0 0 2px rgba(34,197,94,.12) inset; }
+    .zoneWarn{ outline-color: rgba(245,158,11,.55); box-shadow:0 0 0 2px rgba(245,158,11,.12) inset; }
+
+    .igniteZone{
+      position:absolute;
+      left:170px; top:28px;
+      width:80px; height:80px;
+      border-radius:16px;
+      pointer-events:none;
+      outline:2px dashed rgba(255,255,255,.10);
+      outline-offset:6px;
+      opacity:0;
+      transition:opacity 160ms ease;
+      z-index:11;
+    }
+    .igniteZone.show{ opacity:1; }
+    .igniteZone.ok{ outline-color: rgba(34,197,94,.55); box-shadow:0 0 0 2px rgba(34,197,94,.10) inset; }
+    .igniteZone.warn{ outline-color: rgba(245,158,11,.55); box-shadow:0 0 0 2px rgba(245,158,11,.10) inset; }
+
+    .flame{
+      position:absolute;
+      left:238px; top:48px;
+      width:70px; height:110px;
+      opacity:0;
+      pointer-events:none;
+      transform:translateX(-50%);
+      filter:drop-shadow(0 0 16px rgba(255,255,255,.12));
+      z-index:12;
+    }
+    .flame.on{ opacity:1; }
+    .flame.orange{
+      background:
+        radial-gradient(40px 70px at 50% 60%, rgba(0,0,0,.0) 55%, rgba(0,0,0,.08) 70%, rgba(0,0,0,0) 80%),
+        radial-gradient(45px 70px at 50% 70%, #fde68a 0%, #f59e0b 40%, #ea580c 78%, rgba(234,88,12,0) 100%),
+        radial-gradient(22px 40px at 52% 40%, #fff7ed 0%, #fde68a 40%, rgba(253,230,138,0) 100%);
+      border-radius: 50% 50% 55% 55% / 55% 55% 45% 45%;
+      animation:flicker .18s infinite alternate;
+    }
+    .flame.blue{
+      background:
+        radial-gradient(45px 75px at 50% 70%, #bfdbfe 0%, #60a5fa 45%, #2563eb 80%, rgba(37,99,235,0) 100%),
+        radial-gradient(24px 44px at 50% 48%, #eff6ff 0%, #bfdbfe 45%, rgba(191,219,254,0) 100%);
+      border-radius: 50% 50% 55% 55% / 55% 55% 45% 45%;
+      animation:flicker .14s infinite alternate;
+      filter:drop-shadow(0 0 22px rgba(96,165,250,.35));
+    }
+    @keyframes flicker{
+      from{ transform:translateX(-50%) scale(1) rotate(-1deg); }
+      to{ transform:translateX(-50%) scale(1.03) rotate(1deg); }
+    }
+
+    .overlay{
+      position:absolute; inset:0;
+      display:none; align-items:center; justify-content:center;
+      background:rgba(0,0,0,.68);
+      z-index:200;
+      backdrop-filter: blur(3px);
+    }
+    .overlay.show{ display:flex; }
+    .overCard{
+      width:min(520px, 92%);
+      border-radius:18px;
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(15,23,42,.92);
+      padding:18px;
+      box-shadow:0 20px 50px rgba(0,0,0,.55);
+      text-align:center;
+    }
+    .skull{ font-size:58px; margin:0 0 8px 0; }
+    .overCard h2{ margin:0 0 8px 0; font-size:20px; letter-spacing:.2px; }
+    .overCard p{ margin:0 0 14px 0; color:var(--muted); line-height:1.35; font-size:14px; }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Übungsspiel: Gasbrenner sicher entzünden (7. Klasse)</h1>
+      <p class="sub">
+        Reihenfolge: Schlauch anschließen → Luftzufuhr schließen → Streichholz entzünden → Gas öffnen → Zünden → Luftzufuhr öffnen (blau).
+        Gas zu früh geöffnet oder länger als 15&nbsp;s unverbrannt → <strong>Game Over</strong>.
+      </p>
+    </header>
+
+    <div class="grid">
+      <div class="card">
+        <div class="inner">
+          <div class="bubble">
+            <div class="tag" id="stepTag">Schritt 1/6</div>
+            <div class="txt" id="bubbleText">Schließen Sie den Schlauch an das Gasventil an.</div>
+          </div>
+        </div>
+
+        <div class="stage" id="stage">
+          <div class="flame orange" id="flame"></div>
+
+          <!-- Burner -->
+          <div class="burnerWrap">
+            <svg width="420" height="520" viewBox="0 0 420 520">
+              <defs>
+                <linearGradient id="metal" x1="0" x2="1">
+                  <stop offset="0" stop-color="#9aa3ad" />
+                  <stop offset="0.35" stop-color="#e5e7eb" />
+                  <stop offset="0.65" stop-color="#9aa3ad" />
+                  <stop offset="1" stop-color="#cbd5e1" />
+                </linearGradient>
+                <linearGradient id="darkMetal" x1="0" x2="1">
+                  <stop offset="0" stop-color="#6b7280" />
+                  <stop offset="0.5" stop-color="#cbd5e1" />
+                  <stop offset="1" stop-color="#6b7280" />
+                </linearGradient>
+              </defs>
+
+              <ellipse cx="210" cy="470" rx="150" ry="40" fill="rgba(0,0,0,.25)"/>
+              <ellipse cx="210" cy="450" rx="170" ry="52" fill="url(#metal)" opacity="0.95" />
+              <ellipse cx="210" cy="450" rx="165" ry="48" fill="rgba(255,255,255,.08)" />
+
+              <path d="M180 430 C180 350, 200 330, 210 310 C220 330, 240 350, 240 430 Z"
+                    fill="url(#darkMetal)" opacity="0.95"/>
+
+              <g>
+                <rect x="240" y="340" width="90" height="22" rx="10" fill="rgba(148,163,184,.22)" stroke="rgba(255,255,255,.14)"/>
+                <path d="M255 340 L330 310 L340 330 L270 362 Z" fill="rgba(148,163,184,.20)" stroke="rgba(255,255,255,.12)"/>
+              </g>
+
+              <!-- Burner tube -->
+              <rect x="188" y="70" width="44" height="260" rx="18" fill="url(#metal)" opacity="0.98"/>
+              <rect x="190" y="70" width="40" height="260" rx="16" fill="rgba(255,255,255,.06)"/>
+
+              <!-- Air holes -->
+              <g opacity="0.95">
+                <rect x="196" y="240" width="28" height="18" rx="2" fill="rgba(0,0,0,.55)"/>
+                <rect x="196" y="215" width="28" height="18" rx="2" fill="rgba(0,0,0,.55)"/>
+              </g>
+
+              <!-- Cap (static drawing); overlay moves visually -->
+              <g>
+                <rect x="178" y="168" width="64" height="58" rx="18" fill="#111827" stroke="rgba(255,255,255,.18)"/>
+                <rect x="186" y="176" width="48" height="42" rx="16" fill="rgba(255,255,255,.05)"/>
+                <rect x="180" y="214" width="60" height="12" rx="6" fill="rgba(255,255,255,.10)" stroke="rgba(255,255,255,.12)"/>
+              </g>
+            </svg>
+
+            <!-- Ignite zone at the TOP of burner tube -->
+            <div id="igniteZone" class="igniteZone" aria-hidden="true"></div>
+
+            <div id="capOverlay"
+                 style="position:absolute; left:178px; top:168px; width:64px; height:58px; border-radius:18px;
+                        background:rgba(17,24,39,.55); border:1px solid rgba(255,255,255,.18);
+                        pointer-events:none; transition:transform 220ms ease; z-index:8;"></div>
+
+            <div id="capClick"
+                 style="position:absolute; left:178px; top:168px; width:64px; height:58px; z-index:9;"
+                 class="clickable glow"
+                 title="Kappe anklicken: Luftzufuhr öffnen/schließen"></div>
+
+            <!-- hose -->
+            <svg width="420" height="520" style="position:absolute; left:0; top:0; pointer-events:none; z-index:6;">
+              <path id="hoseShadow"
+                    d="M 328 352 C 360 360, 388 386, 404 410"
+                    fill="none" stroke="rgba(0,0,0,.45)" stroke-width="18" stroke-linecap="round" opacity="0.22"/>
+              <path id="hosePath"
+                    d="M 328 352 C 360 360, 388 386, 404 410"
+                    fill="none" stroke="#ef4444" stroke-width="14" stroke-linecap="round"/>
+              <path id="hoseHighlight"
+                    d="M 328 352 C 360 360, 388 386, 404 410"
+                    fill="none" stroke="rgba(255,255,255,.18)" stroke-width="3" stroke-linecap="round" opacity="0.55"/>
+              <circle id="hoseEnd" cx="404" cy="410" r="11" fill="#ef4444" stroke="rgba(255,255,255,.22)" stroke-width="2"/>
+              <circle id="hoseHole" cx="404" cy="410" r="5" fill="rgba(0,0,0,.25)"/>
+            </svg>
+
+            <div id="hoseClick"
+                 style="position:absolute; left:330px; top:332px; width:90px; height:110px; border-radius:14px; z-index:7;"
+                 class="clickable glow"
+                 title="Schlauch anklicken (auswählen)"></div>
+          </div>
+
+          <!-- Matchbox -->
+          <div class="matchArea">
+            <svg width="340" height="250" viewBox="0 0 340 250">
+              <defs>
+                <linearGradient id="boxPaper" x1="0" x2="1">
+                  <stop offset="0" stop-color="rgba(255,255,255,.10)"/>
+                  <stop offset="0.5" stop-color="rgba(255,255,255,.06)"/>
+                  <stop offset="1" stop-color="rgba(255,255,255,.12)"/>
+                </linearGradient>
+                <linearGradient id="labelRed" x1="0" x2="1">
+                  <stop offset="0" stop-color="rgba(239,68,68,.30)"/>
+                  <stop offset="0.55" stop-color="rgba(239,68,68,.18)"/>
+                  <stop offset="1" stop-color="rgba(239,68,68,.28)"/>
+                </linearGradient>
+                <linearGradient id="strikerBrown" x1="0" x2="1">
+                  <stop offset="0" stop-color="rgba(120,53,15,.62)"/>
+                  <stop offset="0.5" stop-color="rgba(120,53,15,.45)"/>
+                  <stop offset="1" stop-color="rgba(120,53,15,.66)"/>
+                </linearGradient>
+              </defs>
+
+              <rect x="24" y="18" width="226" height="128" rx="14" fill="url(#boxPaper)" stroke="rgba(255,255,255,.14)"/>
+              <rect x="34" y="28" width="206" height="108" rx="12" fill="rgba(0,0,0,.12)" stroke="rgba(255,255,255,.10)"/>
+              <rect x="46" y="42" width="182" height="48" rx="10" fill="url(#labelRed)" stroke="rgba(255,255,255,.12)"/>
+              <text x="58" y="70" fill="rgba(255,255,255,.90)" font-size="14" font-weight="900">Streichhölzer</text>
+              <text x="58" y="90" fill="rgba(255,255,255,.60)" font-size="12">Match herausziehen</text>
+
+              <g opacity="0.95">
+                <rect x="56" y="108" width="150" height="8" rx="4" fill="rgba(244,211,163,.78)"/>
+                <rect x="62" y="120" width="150" height="8" rx="4" fill="rgba(244,211,163,.70)"/>
+                <rect x="68" y="132" width="150" height="8" rx="4" fill="rgba(244,211,163,.64)"/>
+                <circle cx="58" cy="112" r="6" fill="rgba(239,68,68,.78)"/>
+                <circle cx="64" cy="124" r="6" fill="rgba(239,68,68,.73)"/>
+                <circle cx="70" cy="136" r="6" fill="rgba(239,68,68,.68)"/>
+              </g>
+
+              <rect x="24" y="160" width="226" height="54" rx="12" fill="url(#strikerBrown)" stroke="rgba(255,255,255,.14)"/>
+              <text x="46" y="186" fill="rgba(255,255,255,.92)" font-size="13" font-weight="900">Anzündfläche</text>
+              <text x="46" y="206" fill="rgba(255,255,255,.60)" font-size="12">Match darüber ziehen</text>
+            </svg>
+
+            <div id="boxGrab"
+                 style="position:absolute; left:24px; top:18px; width:226px; height:128px; border-radius:14px; z-index:20; background:transparent;"
+                 class="clickable"
+                 title="Klicken und ziehen: Streichholz herausziehen"></div>
+
+            <div id="strikerZone"
+                 style="position:absolute; left:24px; top:160px; width:226px; height:54px; border-radius:12px; z-index:20;"
+                 class="dropZone"
+                 title="Hier das Match über die Anzündfläche ziehen"></div>
+          </div>
+
+          <!-- Valve -->
+          <div class="valveWrap">
+            <svg width="340" height="220" viewBox="0 0 340 220">
+              <text x="18" y="24" fill="rgba(255,255,255,.55)" font-size="12">Gasventil</text>
+
+              <rect x="18" y="90" width="180" height="22" rx="10" fill="rgba(148,163,184,.22)" stroke="rgba(255,255,255,.12)"/>
+
+              <rect x="186" y="70" width="70" height="62" rx="14" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.14)"/>
+              <circle cx="221" cy="101" r="18" fill="rgba(0,0,0,.18)" stroke="rgba(255,255,255,.14)"/>
+              <line x1="221" y1="83" x2="221" y2="119" stroke="rgba(255,255,255,.70)" stroke-width="3" opacity="0.7"/>
+
+              <path d="M256 94 L320 70 L330 92 L268 116 Z" fill="rgba(148,163,184,.20)" stroke="rgba(255,255,255,.12)"/>
+              <circle cx="268" cy="105" r="9" fill="rgba(148,163,184,.55)" stroke="rgba(255,255,255,.18)" stroke-width="2"/>
+              <circle cx="268" cy="105" r="14" fill="transparent" stroke="rgba(255,255,255,.16)" stroke-dasharray="4 4"/>
+            </svg>
+
+            <div id="valveConnectClick"
+                 style="position:absolute; left:248px; top:78px; width:96px; height:90px; border-radius:16px;"
+                 class="clickable glow"
+                 title="Ventil-Anschluss anklicken"></div>
+
+            <div id="valveTurnClick"
+                 style="position:absolute; left:186px; top:70px; width:70px; height:62px; border-radius:14px;"
+                 class="clickable glow"
+                 title="Ventil drehen: öffnen/schließen"></div>
+
+            <div class="small" id="valveStatus" style="position:absolute; left:18px; bottom:6px;">
+              Status: Ventil geschlossen.
+            </div>
+          </div>
+
+          <div class="overlay" id="overlay">
+            <div class="overCard">
+              <div class="skull">☠️</div>
+              <h2 id="overTitle">Game Over</h2>
+              <p id="overText">Gas ist unverbrannt ausgetreten. Das ist gefährlich. Starten Sie neu.</p>
+              <button id="restartBtn" type="button">Neu starten</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="hintrow">
+          <div class="badges">
+            <div class="badge">Luftzufuhr: <strong id="airBadge">offen</strong></div>
+            <div class="badge">Schlauch: <strong id="hoseBadge">nicht angeschlossen</strong></div>
+            <div class="badge">Ventil: <strong id="gasBadge">geschlossen</strong></div>
+            <div class="badge">Zündung: <strong id="ignBadge">aus</strong></div>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button id="resetBtn" type="button">Neu starten</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="inner">
+          <div class="panelTitle">Bedienung</div>
+          <div class="toolbox">
+            <div class="tool"><p><strong>Streichholz:</strong> In der Schachtel klicken und ziehen. Über die Anzündfläche ziehen → Flamme am roten Kopf. Zum <strong>oberen Ende des Brennrohrs</strong> ziehen → Brenner zündet, Streichholz geht aus.</p></div>
+            <div class="tool"><p>Nach erfolgreichem Abschluss können Sie die Luftzufuhr weiter öffnen/schließen und so die Flamme beobachten.</p></div>
+          </div>
+          <div class="small">Hinweis: Dieses Spiel ersetzt keine Sicherheitsunterweisung.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  // Steps:
+  // 0 hose connect
+  // 1 close air
+  // 2 light match
+  // 3 open gas
+  // 4 ignite (top of tube)
+  // 5 open air (blue) -> after finish: allow toggling air anytime
+  let step = 0;
+
+  const stage = document.getElementById('stage');
+  const bubbleText = document.getElementById('bubbleText');
+  const stepTag = document.getElementById('stepTag');
+
+  const hoseClick = document.getElementById('hoseClick');
+  const valveConnectClick = document.getElementById('valveConnectClick');
+  const valveTurnClick = document.getElementById('valveTurnClick');
+  const capClick = document.getElementById('capClick');
+  const capOverlay = document.getElementById('capOverlay');
+
+  const hosePath = document.getElementById('hosePath');
+  const hoseHighlight = document.getElementById('hoseHighlight');
+  const hoseShadow = document.getElementById('hoseShadow');
+  const hoseEnd = document.getElementById('hoseEnd');
+  const hoseHole = document.getElementById('hoseHole');
+
+  const boxGrab = document.getElementById('boxGrab');
+  const strikerZone = document.getElementById('strikerZone');
+
+  const igniteZone = document.getElementById('igniteZone');
+  const flame = document.getElementById('flame');
+
+  const hoseBadge = document.getElementById('hoseBadge');
+  const airBadge  = document.getElementById('airBadge');
+  const gasBadge  = document.getElementById('gasBadge');
+  const ignBadge  = document.getElementById('ignBadge');
+  const valveStatus = document.getElementById('valveStatus');
+
+  const overlay = document.getElementById('overlay');
+  const overTitle = document.getElementById('overTitle');
+  const overText = document.getElementById('overText');
+  const resetBtn = document.getElementById('resetBtn');
+  const restartBtn = document.getElementById('restartBtn');
+
+  let hoseSelected = false;
+  let hoseConnected = false;
+
+  let capUp = true;     // true = Luft offen
+  let airClosed = false;
+  let airTouched = false;
+
+  let gasOpen = false;
+  let ignited = false;
+  let matchLit = false;
+
+  let finished = false;       // NEW: after completing step 5
+  let matchBurnt = false;     // NEW: after burner ignition the match is out and charred
+
+  let gasTimer = null;
+  let gasDeadline = null;
+
+  let activeMatchEl = null;
+  let dragging = false;
+  let dragOffset = {x:0,y:0};
+
+  const speech = [
+    "Schließen Sie den Schlauch an das Gasventil an.",
+    "Schließen Sie die Luftzufuhr (Kappe nach unten).",
+    "Zünden Sie ein Streichholz an (über die Anzündfläche ziehen).",
+    "Öffnen Sie das Gasventil (Ventil anklicken).",
+    "Zünden Sie den Brenner: Ziehen Sie das brennende Streichholz zum OBEREN Ende des Brennrohrs.",
+    "Öffnen Sie die Luftzufuhr (Kappe nach oben): Flamme wird blau."
+  ];
+
+  function setBubble(){
+    if (finished){
+      stepTag.textContent = "Fertig";
+      bubbleText.textContent = "Übung abgeschlossen. Sie können jetzt die Luftzufuhr öffnen/schließen und die Flamme beobachten.";
+      igniteZone.classList.remove('show');
+      return;
+    }
+    stepTag.textContent = `Schritt ${Math.min(step+1,6)}/6`;
+    bubbleText.textContent = speech[Math.min(step,5)];
+    igniteZone.classList.toggle('show', step === 4 && !ignited);
+  }
+  function setBadges(){
+    hoseBadge.textContent = hoseConnected ? "angeschlossen" : (hoseSelected ? "ausgewählt" : "nicht angeschlossen");
+    airBadge.textContent = airClosed ? "geschlossen" : "offen";
+    gasBadge.textContent = gasOpen ? "offen" : "geschlossen";
+    ignBadge.textContent = ignited ? "an" : "aus";
+    valveStatus.textContent = `Status: Ventil ${gasOpen ? "geöffnet" : "geschlossen"}.`;
+  }
+  function softError(msg){
+    bubbleText.textContent = msg;
+    stepTag.textContent = "Hinweis";
+    setTimeout(() => setBubble(), 1200);
+  }
+  function gameOver(title, msg){
+    overlay.classList.add('show');
+    overTitle.textContent = title || "Game Over";
+    overText.textContent  = msg || "Gas ist unverbrannt ausgetreten. Das ist gefährlich.";
+    if (gasTimer) clearInterval(gasTimer);
+    gasTimer = null;
+  }
+  function startGasCountdown(){
+    gasDeadline = Date.now() + 15000;
+    if (gasTimer) clearInterval(gasTimer);
+    gasTimer = setInterval(() => {
+      if (!gasOpen || ignited) { clearInterval(gasTimer); gasTimer = null; return; }
+      const left = gasDeadline - Date.now();
+      if (left <= 0){
+        gameOver("Game Over", "Gas ist länger als 15 Sekunden unverbrannt ausgetreten. Das ist gefährlich.");
+      } else {
+        const s = Math.ceil(left/1000);
+        bubbleText.textContent = `Gas ist offen – zünden Sie jetzt. Zeit bis Gefahr: ${s} s.`;
+        stepTag.textContent = "Achtung";
+      }
+    }, 250);
+  }
+  function updateFlame(){
+    flame.classList.remove('on','orange','blue');
+    if (!ignited) return;
+    flame.classList.add('on');
+    flame.classList.add(airClosed ? 'orange' : 'blue');
+  }
+  function advance(){
+    step = Math.min(step+1, 5);
+    setBubble();
+  }
+
+  function setCapPosition(){
+    const dy = capUp ? 0 : 30;
+    capOverlay.style.transform = `translateY(${dy}px)`;
+    capClick.style.transform   = `translateY(${dy}px)`;
+    airClosed = !capUp;
+  }
+
+  function connectHoseToValve(){
+    const valveRect = document.querySelector('.valveWrap').getBoundingClientRect();
+    const outletScreen = { x: valveRect.left + 268, y: valveRect.top + 105 };
+    const burnerRect = document.querySelector('.burnerWrap').getBoundingClientRect();
+    const endLocal = { x: outletScreen.x - burnerRect.left, y: outletScreen.y - burnerRect.top };
+
+    const start = { x: 328, y: 352 };
+    const c1 = { x: start.x + 35, y: start.y - 10 };
+    const c2 = { x: (start.x + endLocal.x)/2 + 40, y: (start.y + endLocal.y)/2 + 40 };
+    const d = `M ${start.x} ${start.y} C ${c1.x} ${c1.y}, ${c2.x} ${c2.y}, ${endLocal.x} ${endLocal.y}`;
+
+    hosePath.setAttribute('d', d);
+    hoseHighlight.setAttribute('d', d);
+    hoseShadow.setAttribute('d', d);
+
+    hoseEnd.setAttribute('cx', String(endLocal.x));
+    hoseEnd.setAttribute('cy', String(endLocal.y));
+    hoseHole.setAttribute('cx', String(endLocal.x));
+    hoseHole.setAttribute('cy', String(endLocal.y));
+  }
+  function resetHose(){
+    const d0 = "M 328 352 C 360 360, 388 386, 404 410";
+    hosePath.setAttribute('d', d0);
+    hoseHighlight.setAttribute('d', d0);
+    hoseShadow.setAttribute('d', d0);
+    hoseEnd.setAttribute('cx', "404");
+    hoseEnd.setAttribute('cy', "410");
+    hoseHole.setAttribute('cx', "404");
+    hoseHole.setAttribute('cy', "410");
+  }
+
+  function rect(el){ return el.getBoundingClientRect(); }
+  function centerOf(el){
+    const r = rect(el);
+    return {x:r.left + r.width/2, y:r.top + r.height/2};
+  }
+  function pointInRect(pt, r){
+    return pt.x >= r.left && pt.x <= r.right && pt.y >= r.top && pt.y <= r.bottom;
+  }
+
+  // ---------------- DRAG SYSTEM (REUSABLE) ----------------
+  function moveMatchToClient(x,y){
+    if (!activeMatchEl) return;
+    const st = stage.getBoundingClientRect();
+    activeMatchEl.style.left = (x - st.left - dragOffset.x) + "px";
+    activeMatchEl.style.top  = (y - st.top  - dragOffset.y) + "px";
+  }
+
+  function updateHoverZones(){
+    if (!activeMatchEl) return;
+    const c = centerOf(activeMatchEl);
+
+    const rStriker = rect(strikerZone);
+    if (!matchLit && !matchBurnt && pointInRect(c, rStriker)){
+      strikerZone.classList.add(step === 2 ? 'zoneOk' : 'zoneWarn');
+    } else {
+      strikerZone.classList.remove('zoneOk','zoneWarn');
+    }
+
+    const rIgnite = rect(igniteZone);
+    if (matchLit && step === 4 && !ignited && pointInRect(c, rIgnite)){
+      igniteZone.classList.add('ok');
+      igniteZone.classList.remove('warn');
+    } else if (matchLit && step !== 4 && pointInRect(c, rIgnite)){
+      igniteZone.classList.add('warn');
+      igniteZone.classList.remove('ok');
+    } else {
+      igniteZone.classList.remove('ok','warn');
+    }
+  }
+
+  function setMatchState(el){
+    if (!el) return;
+    el.classList.toggle('lit', matchLit);
+    el.classList.toggle('burnt', matchBurnt);
+  }
+
+  function handleDrop(){
+    if (!activeMatchEl) return;
+    strikerZone.classList.remove('zoneOk','zoneWarn');
+    igniteZone.classList.remove('ok','warn');
+
+    const c = centerOf(activeMatchEl);
+    const rStriker = rect(strikerZone);
+    const rIgnite  = rect(igniteZone);
+
+    // 1) Streichholz entzünden (only if not burnt)
+    if (!matchLit && !matchBurnt && pointInRect(c, rStriker)){
+      if (step !== 2){ softError("Falsche Reihenfolge: Streichholz erst jetzt entzünden."); return; }
+      matchLit = true;
+      matchBurnt = false;
+      setMatchState(activeMatchEl);
+      stepTag.textContent = "OK";
+      bubbleText.textContent = "Streichholz brennt am roten Kopf. Ziehen Sie es jetzt zum oberen Ende des Brennrohrs.";
+      advance();
+      return;
+    }
+
+    // 2) Brenner zünden (oben am Brennrohr)
+    if (matchLit && pointInRect(c, rIgnite)){
+      if (step !== 4){ softError("Falsche Reihenfolge: Erst Gas öffnen, dann zünden."); return; }
+      if (!gasOpen){ softError("Kein Gas: Öffnen Sie zuerst das Ventil."); return; }
+
+      ignited = true;
+      if (gasTimer) { clearInterval(gasTimer); gasTimer = null; }
+      updateFlame();
+
+      // NEW: match goes out and looks charred after burner is lit
+      matchLit = false;
+      matchBurnt = true;
+      setMatchState(activeMatchEl);
+
+      stepTag.textContent = "OK";
+      bubbleText.textContent = "Brenner zündet. Das Streichholz ist aus und verkohlt.";
+      advance();
+      return;
+    }
+  }
+
+  function onDocMove(e){
+    if (!dragging) return;
+    moveMatchToClient(e.clientX, e.clientY);
+    updateHoverZones();
+    e.preventDefault();
+  }
+  function onDocUp(e){
+    if (!dragging) return;
+    dragging = false;
+    handleDrop();
+    document.removeEventListener('pointermove', onDocMove, true);
+    document.removeEventListener('pointerup', onDocUp, true);
+    e.preventDefault();
+  }
+
+  function beginDragFromElement(pointerDownEvent, el){
+    if (overlay.classList.contains('show')) return;
+    if (!el) return;
+
+    const mr = el.getBoundingClientRect();
+    dragOffset.x = pointerDownEvent.clientX - mr.left;
+    dragOffset.y = pointerDownEvent.clientY - mr.top;
+
+    dragging = true;
+    try { el.setPointerCapture(pointerDownEvent.pointerId); } catch {}
+    document.addEventListener('pointermove', onDocMove, true);
+    document.addEventListener('pointerup', onDocUp, true);
+    pointerDownEvent.preventDefault();
+  }
+
+  function createMatchAt(x,y){
+    if (activeMatchEl) activeMatchEl.remove();
+
+    const el = document.createElement('div');
+    el.className = 'dragMatch';
+    el.innerHTML = `<div class="matchHead"><div class="matchFlame"></div></div><div class="matchStick"></div>`;
+    stage.appendChild(el);
+    activeMatchEl = el;
+
+    const st = stage.getBoundingClientRect();
+    el.style.left = (x - st.left - 92) + "px";
+    el.style.top  = (y - st.top  - 15) + "px";
+
+    el.addEventListener('pointerdown', (ev) => beginDragFromElement(ev, el), {passive:false});
+
+    // new match is unlit and not burnt
+    matchLit = false;
+    matchBurnt = false;
+    setMatchState(el);
+
+    return el;
+  }
+
+  boxGrab.addEventListener('pointerdown', (ev) => {
+    if (overlay.classList.contains('show')) return;
+
+    // allow taking new matches even after finishing; it won't affect burner logic
+    const el = createMatchAt(ev.clientX, ev.clientY);
+    beginDragFromElement(ev, el);
+
+    if (!finished && step < 2){
+      softError("Noch nicht: Erst Schlauch anschließen und Luftzufuhr schließen.");
+    }
+  }, {passive:false});
+  // -------------------------------------------------------
+
+  // hose connect
+  hoseClick.addEventListener('click', () => {
+    if (overlay.classList.contains('show')) return;
+    if (hoseConnected){ softError("Der Schlauch ist bereits angeschlossen."); return; }
+    hoseSelected = true;
+    setBadges();
+    if (!finished && step !== 0){ softError("Falsche Reihenfolge: Erst Schlauch anschließen."); return; }
+    bubbleText.textContent = "Gut. Klicken Sie jetzt auf den Ventil-Anschluss.";
+    stepTag.textContent = finished ? "Fertig" : "Schritt 1/6";
+  });
+
+  valveConnectClick.addEventListener('click', () => {
+    if (overlay.classList.contains('show')) return;
+    if (!hoseSelected){ softError("Klicken Sie zuerst den Schlauch an, dann das Ventil."); return; }
+    if (!finished && step !== 0){ softError("Falsche Reihenfolge."); hoseSelected=false; setBadges(); return; }
+    hoseConnected = true; hoseSelected = false;
+    connectHoseToValve();
+    setBadges();
+    if (!finished){
+      stepTag.textContent = "OK";
+      bubbleText.textContent = "Schlauch angeschlossen.";
+      advance();
+    } else {
+      softError("Schlauch ist angeschlossen.");
+    }
+  });
+  window.addEventListener('resize', () => { if (hoseConnected) connectHoseToValve(); });
+
+  // cap (air)
+  capClick.addEventListener('click', () => {
+    if (overlay.classList.contains('show')) return;
+
+    // NEW: after finished, allow toggling air anytime (switch flame orange/blue if ignited)
+    if (finished){
+      capUp = !capUp;
+      setCapPosition();
+      setBadges();
+      updateFlame();
+      // do not change step; keep finished message
+      setBubble();
+      return;
+    }
+
+    // before ignition: must be step 1 to close air
+    if (!ignited){
+      if (step !== 1){ softError("Falsche Reihenfolge: Jetzt nicht."); return; }
+      capUp = false; airTouched = true; setCapPosition(); setBadges();
+      bubbleText.textContent = "Luftzufuhr geschlossen (Kappe unten).";
+      stepTag.textContent = "OK";
+      advance();
+      return;
+    }
+
+    // after ignition but before finish: only step 5 to open air
+    if (step !== 5){
+      capUp = !capUp; setCapPosition(); setBadges(); updateFlame();
+      softError("Luftzufuhr verändert – prüfen Sie die Anweisung.");
+      return;
+    }
+
+    // finish step 5
+    capUp = true; setCapPosition(); setBadges(); updateFlame();
+    finished = true;          // NEW
+    setBubble();
+  });
+
+  // valve open/close
+  valveTurnClick.addEventListener('click', () => {
+    if (overlay.classList.contains('show')) return;
+
+    if (!gasOpen){
+      if (!finished && step !== 3){
+        if (step <= 2){
+          gameOver("Game Over", "Sie haben das Gas geöffnet, bevor ein Streichholz brennt. Das ist gefährlich.");
+          return;
+        }
+        softError("Falsche Reihenfolge: Gas erst jetzt öffnen.");
+        return;
+      }
+      if (!hoseConnected){ softError("Schlauch ist nicht angeschlossen."); return; }
+
+      if (!finished){
+        if (!airTouched || !airClosed){ softError("Erst Luftzufuhr schließen (Kappe runter)."); return; }
+        if (!matchLit){
+          gameOver("Game Over", "Gas geöffnet ohne brennendes Streichholz. Das ist gefährlich.");
+          return;
+        }
+      }
+
+      gasOpen = true; setBadges();
+
+      if (!finished){
+        bubbleText.textContent = "Gas ist offen. Zünden Sie jetzt am oberen Ende des Brennrohrs.";
+        stepTag.textContent = "Achtung";
+        startGasCountdown();
+        advance();
+      } else {
+        softError("Gasventil geöffnet.");
+      }
+      return;
+    } else {
+      gasOpen = false; setBadges();
+      if (gasTimer) { clearInterval(gasTimer); gasTimer = null; }
+      if (!ignited){
+        softError("Gasventil geschlossen.");
+      } else {
+        ignited = false; updateFlame();
+        softError("Flamme aus.");
+      }
+    }
+  });
+
+  function resetAll(){
+    step = 0;
+
+    hoseSelected = false;
+    hoseConnected = false;
+
+    capUp = true;
+    airTouched = false;
+    setCapPosition();
+
+    gasOpen = false;
+    ignited = false;
+
+    matchLit = false;
+    matchBurnt = false;
+    finished = false;
+
+    if (gasTimer) clearInterval(gasTimer);
+    gasTimer = null; gasDeadline = null;
+
+    overlay.classList.remove('show');
+    resetHose();
+
+    if (activeMatchEl){ activeMatchEl.remove(); activeMatchEl = null; }
+
+    igniteZone.classList.remove('show','ok','warn');
+    updateFlame();
+    setBadges();
+    setBubble();
+  }
+
+  resetBtn.addEventListener('click', resetAll);
+  restartBtn.addEventListener('click', resetAll);
+
+  // init
+  setCapPosition();
+  setBadges();
+  updateFlame();
+  setBubble();
+})();
+</script>
+</body>
+</html>
