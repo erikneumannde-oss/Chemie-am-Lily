@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>pH-Wert & Säurestärke - Lernmodul</title>
+    
+    <!-- Bibliothek für die lokale PDF-Generierung -->
+    <script src="html2pdf.bundle.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #eef2f5;
+            color: #333;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            padding-bottom: 60px;
+        }
+
+        .step-container {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .step-container.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .header-text {
+            background-color: #fff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+        }
+
+        .simulation-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 40px;
+            background-color: #fff;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        /* Course Selection (Schritt 0) */
+        .course-btn {
+            flex: 1;
+            padding: 25px;
+            font-size: 1.4rem;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-weight: bold;
+        }
+        .course-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.2);
+        }
+        .btn-gk { background-color: #17a2b8; }
+        .btn-lk { background-color: #0056b3; }
+
+        /* Experimentierbereich */
+        .experiment-area {
+            position: relative;
+            width: 250px;
+            height: 380px; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            margin: 0 20px;
+        }
+
+        .beaker-title {
+            font-weight: bold;
+            font-size: 1.1rem;
+            text-align: center;
+            width: 100%;
+            margin-top: 15px; 
+            color: #333;
+        }
+
+        /* Beschriftungen (für Schritt 1) */
+        .label {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid #aaa;
+            padding: 4px 10px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            border-radius: 4px;
+            box-shadow: 1px 1px 3px rgba(0,0,0,0.15);
+            color: #444;
+            z-index: 30;
+        }
+
+        .label-ph-meter { top: 30px; right: -30px; }
+        .label-beaker { bottom: 100px; left: -40px; }
+        .label-liquid { bottom: 150px; right: -30px; }
+
+        /* 3D pH-Meter */
+        .ph-meter {
+            position: absolute;
+            top: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 20;
+            transform: translateY(10px);
+            transition: transform 0.3s ease, opacity 0.3s;
+        }
+
+        .ph-body-red {
+            width: 70px;
+            height: 90px;
+            background: linear-gradient(135deg, #ff4d4d, #cc0000);
+            border-radius: 35px 35px 15px 15px;
+            box-shadow: inset -3px -3px 8px rgba(0,0,0,0.2), 3px 5px 10px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 15px;
+        }
+
+        .ph-display {
+            width: 50px;
+            height: 25px;
+            background: #9cad8e; 
+            border: 2px solid #222;
+            border-radius: 4px;
+            box-shadow: inset 1px 1px 3px rgba(0,0,0,0.5);
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: rgba(0,0,0,0.1); 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            letter-spacing: 1px;
+        }
+
+        .ph-display.on { color: #111; }
+
+        .ph-button {
+            width: 12px;
+            height: 12px;
+            background: radial-gradient(circle at 3px 3px, #444, #000);
+            border-radius: 50%;
+            margin-top: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+        }
+
+        .ph-probe-black {
+            width: 14px;
+            height: 140px;
+            background: linear-gradient(to right, #222, #555, #111);
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+        }
+
+        .ph-probe-cap {
+            width: 18px;
+            height: 15px;
+            background: radial-gradient(circle at 5px 5px, #444, #000);
+            border-radius: 0 0 8px 8px;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+        }
+
+        /* 3D Becherglas */
+        .beaker {
+            position: relative;
+            width: 160px;
+            height: 200px;
+            border: 3px solid rgba(255, 255, 255, 0.6);
+            border-bottom: 6px solid rgba(255, 255, 255, 0.8);
+            border-top: none;
+            border-radius: 0 0 20px 20px;
+            background: linear-gradient(to right, rgba(255,255,255,0.1), rgba(200,200,200,0.3), rgba(255,255,255,0.1));
+            box-shadow: inset -5px -5px 15px rgba(0,0,0,0.05), 5px 15px 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+            display: flex;
+            align-items: flex-end;
+            z-index: 10;
+        }
+
+        .beaker::before {
+            content: '- 200 \A - 150 \A - 100 \A - 50';
+            white-space: pre;
+            position: absolute;
+            left: 10px;
+            bottom: 20px;
+            line-height: 40px;
+            color: #000;
+            font-weight: bold;
+            font-size: 0.75rem;
+            font-family: sans-serif;
+            text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
+            z-index: 15;
+        }
+
+        .beaker.no-scale::before { display: none; }
+
+        .liquid {
+            width: 100%;
+            height: 65%;
+            background: linear-gradient(to right, rgba(173, 216, 230, 0.6), rgba(135, 206, 235, 0.8));
+            border-top: 2px solid rgba(255,255,255,0.5);
+            transition: background 0.3s ease;
+            position: relative;
+            display: flex;
+            flex-wrap: wrap;
+            align-content: flex-start;
+            justify-content: center;
+            gap: 4px;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+
+        /* Steuerungselemente */
+        .controls {
+            flex: 1;
+            min-width: 280px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .slider-container { display: flex; align-items: center; gap: 15px; }
+        input[type="range"] { flex: 1; cursor: pointer; }
+        input[type="number"] { padding: 8px; border: 2px solid #ccc; border-radius: 6px; font-size: 1.1rem; }
+        .conc-manual { width: 100px; }
+        
+        button {
+            padding: 12px 20px;
+            background-color: #0056b3;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            transition: all 0.2s ease;
+        }
+        button:hover { background-color: #004494; transform: translateY(-2px); }
+        button:disabled { background-color: #aaa; cursor: not-allowed; transform: none; box-shadow: none; }
+        
+        .btn-nav-container { display: flex; gap: 10px; margin-top: 10px; width: 100%; }
+        button.btn-next { background-color: #28a745; display: none; flex: 2; }
+        button.btn-next:hover { background-color: #218838; }
+        button.btn-back { background-color: #6c757d; flex: 1; }
+        button.btn-back:hover { background-color: #5a6268; }
+        button.btn-giveup { background-color: #e74c3c; width: 100%; margin-top: 10px;}
+        button.btn-giveup:hover { background-color: #c0392b; }
+
+        .feedback {
+            font-weight: bold;
+            min-height: 48px;
+            padding: 10px;
+            border-radius: 6px;
+            background-color: #f8f9fa;
+            border-left: 4px solid #ccc;
+        }
+
+        /* Partikel Design */
+        .molecule-group {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255,255,255,0.4); 
+            border-radius: 6px;
+            padding: 2px 4px;
+            animation: popIn 0.3s ease forwards;
+        }
+
+        .particle {
+            font-weight: bold;
+            font-size: 0.8rem;
+            color: #333;
+            text-shadow: 1px 1px 1px rgba(255,255,255,0.8);
+            z-index: 20;
+        }
+        
+        @keyframes popIn {
+            from { transform: scale(0); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .h3o { color: #cc0000; }
+        .cl { color: #008000; }
+        .ch3coo { color: #800080; }
+        .ch3cooh { color: #333; }
+
+        .falling-drop {
+            position: absolute;
+            top: -50px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-weight: bold;
+            font-size: 0.95rem;
+            color: #111;
+            background: rgba(255,255,255,0.8);
+            padding: 2px 6px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            z-index: 30;
+            animation: fall 0.6s forwards;
+        }
+
+        @keyframes fall {
+            0% { top: -50px; opacity: 1; }
+            90% { top: 60px; opacity: 1; }
+            100% { top: 80px; opacity: 0; transform: translateX(-50%) scale(0.5); }
+        }
+
+        .zeitraffer-info {
+            width: 100%;
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e9ecef;
+            border-radius: 6px;
+            border-left: 5px solid #0056b3;
+            font-size: 1.1rem;
+            min-height: 120px;
+        }
+
+        .play-container { display: flex; align-items: center; gap: 15px; margin-bottom: 10px; }
+
+        /* Styles für Schritt 4 (Aufgaben) */
+        .task-box {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .task-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            border-bottom: 1px dashed #ccc;
+            padding-bottom: 10px;
+            flex-wrap: wrap;
+        }
+        .task-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+        .sci-input { display: flex; align-items: center; gap: 5px; font-size: 1.1rem; }
+        .sci-input input { width: 80px; text-align: center; }
+        
+        .giveup-label {
+            font-size: 0.85rem;
+            color: #666;
+            margin-left: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+        .giveup-label input { margin-right: 5px; }
+
+        /* PDF Protokoll Formular */
+        .pdf-form {
+            background: #f8f9fa; border: 3px solid #1e3799; border-radius: 10px; padding: 30px; text-align: center; width: 100%; margin: 0 auto;
+        }
+        .pdf-form input { display: block; width: 80%; margin: 15px auto; padding: 12px; font-size: 18px; border: 2px solid #bdc3c7; border-radius: 8px; font-family: inherit; }
+        .pdf-btn { background-color: #e74c3c; color: white; font-size: 20px; padding: 15px 30px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: 15px; transition: 0.2s; }
+        .pdf-btn:hover { background-color: #c0392b; transform: scale(1.05); }
+
+        /* Verstecktes PDF Template */
+        #pdf-template-wrapper { 
+            position: fixed; 
+            top: 0; left: 0; 
+            opacity: 0.001; 
+            z-index: -1000; 
+            pointer-events: none; 
+        }
+
+        #pdf-template {
+            width: 210mm; height: 297mm; 
+            background-color: #ffffff;
+            border: 10px solid #2c3e50;
+            box-sizing: border-box;
+            padding: 15mm;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #2c3e50;
+            position: relative;
+        }
+
+        .pdf-header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 5mm; margin-bottom: 10mm; }
+        .pdf-header h1 { color: #1e3799; margin: 0; font-size: 32px; text-transform: uppercase;}
+        .pdf-header h2 { color: #555; margin: 5px 0 0 0; font-size: 20px; }
+        .pdf-student-name { font-size: 22px; font-weight: bold; text-align: center; margin-bottom: 10mm; color: #27ae60; }
+        
+        .pdf-section { margin-bottom: 10mm; }
+        .pdf-section h3 { background: #eee; padding: 5px 10px; border-left: 5px solid #1e3799; margin: 0 0 10px 0; font-size: 18px; }
+        
+        .pdf-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 14px; }
+        .pdf-table th, .pdf-table td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        .pdf-table th { background: #f8f9fa; }
+
+    </style>
+</head>
+<body>
+
+    <!-- IMPRESSUM LINK -->
+    <a href="/Virtuelles-Chemielabor/impressum.html" style="position: fixed; bottom: 10px; right: 10px; background: rgba(0,0,0,0.6); color: white; padding: 5px 10px; text-decoration: none; border-radius: 5px; font-family: sans-serif; font-size: 12px; z-index: 9999;">Impressum & Datenschutz</a>
+
+    <!-- SCHRITT 0: KURSWAHL -->
+    <div id="step0" class="step-container active">
+        <div class="header-text">
+            <h2>Willkommen zur Simulation: pH-Wert & Säurestärke</h2>
+            <p>Bitte wähle deinen Kurs aus, um die passenden Aufgaben und Erklärungen zu laden.</p>
+        </div>
+        <div class="simulation-container" style="flex-direction: row;">
+            <button class="course-btn btn-gk" onclick="selectCourse('GK')">Grundkurs (GK)</button>
+            <button class="course-btn btn-lk" onclick="selectCourse('LK')">Leistungskurs (LK)</button>
+        </div>
+    </div>
+
+    <!-- SCHRITT 1 -->
+    <div id="step1" class="step-container">
+        <div class="header-text">
+            <h2>Rückblick: Die Berechnung des pH-Wertes</h2>
+            <p>
+                In der letzten Stunde haben wir gelernt, dass bestimmte Säuren (wie zum Beispiel Salzsäure, HCl) in wässriger Lösung <strong>vollständig protolysieren</strong>. 
+            </p>
+            <p>
+                Daher können wir vereinfacht annehmen: <strong>c(H₃O⁺) = c₀(HA)</strong><br>
+                Berechnung: <strong>pH = -log(c(H₃O⁺))</strong>
+            </p>
+        </div>
+        <div class="simulation-container">
+            <div class="experiment-area">
+                <div class="label label-ph-meter">pH-Meter</div>
+                <div class="label label-beaker">Becherglas</div>
+                <div class="label label-liquid">HCl-Lösung</div>
+
+                <div class="ph-meter" id="ph-meter-device1">
+                    <div class="ph-body-red">
+                        <div class="ph-display" id="ph-display1">8.88</div>
+                        <div class="ph-button"></div>
+                    </div>
+                    <div class="ph-probe-black"></div><div class="ph-probe-cap"></div>
+                </div>
+                <div class="beaker"><div class="liquid"></div></div>
+                <div class="beaker-title">Salzsäure-Lösung</div>
+            </div>
+            <div class="controls">
+                <div>
+                    <label>Konzentration c(HCl) in mol/L:</label>
+                    <div class="slider-container">
+                        <input type="number" id="conc-manual1" class="conc-manual" min="0.001" max="2.000" step="0.001" value="0.100">
+                        <input type="range" id="concentration1" min="0.001" max="2.000" step="0.001" value="0.100">
+                    </div>
+                </div>
+                <div>
+                    <label>Ihre pH-Wert Berechnung:</label><br>
+                    <input type="number" id="user-ph1" step="0.01" style="width:100%;">
+                </div>
+                <button id="check-btn1">Messen & Vergleichen</button>
+                <div id="feedback1" class="feedback">Tragen Sie Ihr berechnetes Ergebnis ein.</div>
+                
+                <div class="btn-nav-container">
+                    <button id="btn-next1" class="btn-next">Weiter zum Vergleichsexperiment</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCHRITT 2 -->
+    <div id="step2" class="step-container">
+        <div class="header-text">
+            <h2>Vergleich: Salzsäure vs. Essigsäure</h2>
+            <p>Berechnen Sie den theoretischen pH-Wert für die eingestellte Konzentration und schalten Sie beide Messgeräte ein.</p>
+        </div>
+        <div class="simulation-container">
+            <div class="experiment-area">
+                <div class="ph-meter" id="ph-meter-device2a">
+                    <div class="ph-body-red">
+                        <div class="ph-display" id="ph-display2a">8.88</div>
+                        <div class="ph-button"></div>
+                    </div>
+                    <div class="ph-probe-black"></div><div class="ph-probe-cap"></div>
+                </div>
+                <div class="beaker"><div class="liquid"></div></div>
+                <div class="beaker-title">Salzsäure-Lösung</div>
+            </div>
+
+            <div class="experiment-area">
+                <div class="ph-meter" id="ph-meter-device2b">
+                    <div class="ph-body-red">
+                        <div class="ph-display" id="ph-display2b">8.88</div>
+                        <div class="ph-button"></div>
+                    </div>
+                    <div class="ph-probe-black"></div><div class="ph-probe-cap"></div>
+                </div>
+                <div class="beaker"><div class="liquid"></div></div>
+                <div class="beaker-title">Essigsäure-Lösung</div>
+            </div>
+
+            <div class="controls" style="min-width: 100%;">
+                <div style="display: flex; gap: 20px; align-items: flex-end;">
+                    <div style="flex:1;">
+                        <label>Konzentration <b>beider</b> Lösungen (mol/L):</label>
+                        <div class="slider-container">
+                            <input type="number" id="conc-manual2" class="conc-manual" min="0.001" max="2.000" step="0.001" value="0.100">
+                            <input type="range" id="concentration2" min="0.001" max="2.000" step="0.001" value="0.100">
+                        </div>
+                    </div>
+                    <div style="flex:1;">
+                        <label>Berechneter pH-Wert:</label><br>
+                        <input type="number" id="user-ph2" step="0.01" style="width:100%;">
+                    </div>
+                    <button id="check-btn2" style="background-color: #cc0000; height: 46px;">Beide Messen</button>
+                </div>
+                <div id="feedback2" class="feedback">Berechnen Sie den Wert und starten Sie die Messung.</div>
+                
+                <div class="btn-nav-container">
+                    <button id="btn-back2" class="btn-back">Zurück</button>
+                    <button id="btn-next2" class="btn-next">Phänomen ansehen</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCHRITT 3 -->
+    <div id="step3" class="step-container">
+        <div class="header-text">
+            <h2>Der Blick auf die Teilchenebene</h2>
+            <p>Lassen Sie die Tropfen fallen, um das Verhalten der Moleküle im Wasser zu beobachten.</p>
+        </div>
+        <div class="simulation-container">
+            <div class="experiment-area" id="area-hcl">
+                <div class="beaker no-scale"><div class="liquid" id="liquid-hcl"></div></div>
+                <div class="beaker-title">Salzsäure-Lösung</div>
+            </div>
+
+            <div class="experiment-area" id="area-ac">
+                <div class="beaker no-scale"><div class="liquid" id="liquid-ch3cooh"></div></div>
+                <div class="beaker-title">Essigsäure-Lösung</div>
+            </div>
+
+            <div class="controls" style="min-width: 100%;">
+                <div class="play-container">
+                    <button id="play-btn" style="background-color: #17a2b8;">▶ Abspielen</button>
+                    <div style="flex: 1;">
+                        <label style="font-weight: bold; font-size: 1rem;">Zeitraffer (Tropfen 0 bis 8):</label>
+                        <input type="range" id="timeline" min="0" max="8" step="1" value="0" style="height: 30px;">
+                    </div>
+                </div>
+                
+                <div id="zeitraffer-text" class="zeitraffer-info">Start: Bewegen Sie den Regler nach rechts.</div>
+
+                <div class="btn-nav-container">
+                    <button id="btn-back3" class="btn-back">Zurück</button>
+                    <button id="btn-next3" class="btn-next">Weiter zur Überprüfung</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCHRITT 4 (Aufgabenüberprüfung) -->
+    <div id="step4" class="step-container">
+        <div class="header-text">
+            <h2>Überprüfung der Aufgaben</h2>
+            <p>Geben Sie hier Ihre berechneten Ergebnisse ein oder haken Sie an, wenn Sie nicht weiterkamen.</p>
+        </div>
+        <div class="simulation-container" style="display: block;">
+            
+            <!-- LK AUFGABEN -->
+            <div id="tasks-lk" style="display: none;">
+                <div class="task-box">
+                    <h3 style="margin-top: 0;">Aufgabe 2 (Seite 159) - pKs-Werte</h3>
+                    <div class="task-row">
+                        <span>Ks = 1 · 10<sup>6,8</sup></span>
+                        <div style="display: flex; align-items: center;">
+                            pKs = <input type="number" id="lk_ans1" step="0.1" style="width: 80px; margin-left: 5px;">
+                            <label class="giveup-label"><input type="checkbox" id="lk_giveup1"> Konnte ich nicht lösen</label>
+                        </div>
+                    </div>
+                    <div class="task-row">
+                        <span>Ks = 1 · 10<sup>-14,3</sup></span>
+                        <div style="display: flex; align-items: center;">
+                            pKs = <input type="number" id="lk_ans2" step="0.1" style="width: 80px; margin-left: 5px;">
+                            <label class="giveup-label"><input type="checkbox" id="lk_giveup2"> Konnte ich nicht lösen</label>
+                        </div>
+                    </div>
+                    <div class="task-row">
+                        <span>Ks = 5,6 · 10<sup>-11</sup></span>
+                        <div style="display: flex; align-items: center;">
+                            pKs = <input type="number" id="lk_ans3" step="0.01" style="width: 80px; margin-left: 5px;">
+                            <label class="giveup-label"><input type="checkbox" id="lk_giveup3"> Konnte ich nicht lösen</label>
+                        </div>
+                    </div>
+                    <div class="task-row">
+                        <span>Ks = 1,2 · 10<sup>-2</sup></span>
+                        <div style="display: flex; align-items: center;">
+                            pKs = <input type="number" id="lk_ans4" step="0.01" style="width: 80px; margin-left: 5px;">
+                            <label class="giveup-label"><input type="checkbox" id="lk_giveup4"> Konnte ich nicht lösen</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="task-box">
+                    <h3 style="margin-top: 0;">Aufgabe 3 (Seite 161) - Autoprotolyse</h3>
+                    <p>Konzentration Acetat-Ionen c(CH₃COO⁻):</p>
+                    <div class="task-row" style="border: none;">
+                        <span>Ergebnis:</span>
+                        <div style="display: flex; align-items: center; flex-wrap: wrap;">
+                            <div class="sci-input">
+                                c = <input type="number" id="lk_ans5_base" step="0.01"> · 10 <sup><input type="number" id="lk_ans5_exp" step="1" style="width: 60px;"></sup> mol/l
+                            </div>
+                            <label class="giveup-label"><input type="checkbox" id="lk_giveup5"> Konnte ich nicht lösen</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- GK AUFGABEN -->
+            <div id="tasks-gk" style="display: none;">
+                <div class="task-box">
+                    <h3 style="margin-top: 0;">Aufgabe 2b (Seite 133) - Konstanten</h3>
+                    <div class="task-row">
+                        <span>Ks(HSO₄⁻) = </span>
+                        <div style="display: flex; align-items: center;">
+                            <input type="number" id="gk_ans1" step="0.0001" style="width: 100px; margin-left: 5px;"> mol/l
+                            <label class="giveup-label"><input type="checkbox" id="gk_giveup1"> Konnte ich nicht lösen</label>
+                        </div>
+                    </div>
+                    <div class="task-row">
+                        <span>KB(SO₄²⁻) = </span>
+                        <div style="display: flex; align-items: center; flex-wrap: wrap;">
+                            <div class="sci-input">
+                                <input type="number" id="gk_ans2_base" step="0.1"> · 10 <sup><input type="number" id="gk_ans2_exp" step="1" style="width: 60px;"></sup> mol/l
+                            </div>
+                            <label class="giveup-label"><input type="checkbox" id="gk_giveup2"> Konnte ich nicht lösen</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="task-box">
+                    <h3 style="margin-top: 0;">Aufgabe 1 (Seite 135) - Säure-/Basenkonstanten</h3>
+                    <div class="task-row">
+                        <span>Ks(HNO₃) = </span>
+                        <div style="display: flex; align-items: center;">
+                            <input type="number" id="gk_ans3" step="0.01" style="width: 100px; margin-left: 5px;"> mol/l
+                            <label class="giveup-label"><input type="checkbox" id="gk_giveup3"> Konnte ich nicht lösen</label>
+                        </div>
+                    </div>
+                    <div class="task-row">
+                        <span>KB(CO₃²⁻) = </span>
+                        <div style="display: flex; align-items: center; flex-wrap: wrap;">
+                            <div class="sci-input">
+                                <input type="number" id="gk_ans4_base" step="0.01"> · 10 <sup><input type="number" id="gk_ans4_exp" step="1" style="width: 60px;"></sup> mol/l
+                            </div>
+                            <label class="giveup-label"><input type="checkbox" id="gk_giveup4"> Konnte ich nicht lösen</label>
+                        </div>
+                    </div>
+                    <div class="task-row">
+                        <span>KB(NH₃) = </span>
+                        <div style="display: flex; align-items: center; flex-wrap: wrap;">
+                            <div class="sci-input">
+                                <input type="number" id="gk_ans5_base" step="0.01"> · 10 <sup><input type="number" id="gk_ans5_exp" step="1" style="width: 60px;"></sup> mol/l
+                            </div>
+                            <label class="giveup-label"><input type="checkbox" id="gk_giveup5"> Konnte ich nicht lösen</label>
+                        </div>
+                    </div>
+                    <div class="task-row">
+                        <span>Ks(HS⁻) = </span>
+                        <div style="display: flex; align-items: center; flex-wrap: wrap;">
+                            <div class="sci-input">
+                                <input type="number" id="gk_ans6_base" step="0.01"> · 10 <sup><input type="number" id="gk_ans6_exp" step="1" style="width: 60px;"></sup> mol/l
+                            </div>
+                            <label class="giveup-label"><input type="checkbox" id="gk_giveup6"> Konnte ich nicht lösen</label>
+                        </div>
+                    </div>
+                    <div class="task-row" style="border: none;">
+                        <span>KB(HS⁻) = </span>
+                        <div style="display: flex; align-items: center; flex-wrap: wrap;">
+                            <div class="sci-input">
+                                <input type="number" id="gk_ans7_base" step="0.01"> · 10 <sup><input type="number" id="gk_ans7_exp" step="1" style="width: 60px;"></sup> mol/l
+                            </div>
+                            <label class="giveup-label"><input type="checkbox" id="gk_giveup7"> Konnte ich nicht lösen</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button id="check-btn4" style="width: 100%; margin-bottom: 10px;">Ergebnisse prüfen & Protokoll freischalten</button>
+            <div id="feedback4" class="feedback">Tragen Sie alle Werte ein (oder setzen Sie das Häkchen) und klicken Sie auf prüfen.</div>
+            
+            <button id="btn-giveup" class="btn-giveup">Gesamte Aufgabe überspringen (Protokoll erstellen)</button>
+
+            <div class="btn-nav-container">
+                <button id="btn-back4" class="btn-back">Zurück</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCHRITT 5 (PDF PROTOKOLL) -->
+    <div id="step5" class="step-container">
+        <div class="simulation-container" style="display: block;">
+            <div class="pdf-form">
+                <h2 style="color: #1e3799; font-size: 30px; margin-top: 0;">📊 Lernprotokoll generieren</h2>
+                <p>Trage deinen Namen ein, um dein Übungsprotokoll für die Lehrkraft als PDF herunterzuladen.</p>
+                
+                <input type="text" id="student-name" placeholder="Dein Vor- und Nachname" autocomplete="off">
+                <button class="pdf-btn" onclick="generatePDF()">📥 PDF-Protokoll speichern</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- VERSTECKTES PDF TEMPLATE -->
+    <div id="pdf-template-wrapper">
+        <div id="pdf-template">
+            <div class="pdf-header">
+                <h1>Lernprotokoll: Säurestärke & pH-Wert</h1>
+                <h2>Interaktives Chemielabor</h2>
+            </div>
+            
+            <div class="pdf-student-name">Schüler/in: <span id="pdf-out-name"></span> <span style="color:#555; font-size:18px;">(Kurs: <span id="pdf-out-course"></span>)</span></div>
+
+            <div class="pdf-section">
+                <h3>1. Durchgeführte Experimente</h3>
+                <table class="pdf-table">
+                    <tr><th>Modul</th><th>Verwendete Konzentration</th></tr>
+                    <tr><td>Schritt 1: Salzsäure (Starke Säure)</td><td id="pdf-out-c1"></td></tr>
+                    <tr><td>Schritt 2: Salzsäure vs. Essigsäure</td><td id="pdf-out-c2"></td></tr>
+                </table>
+            </div>
+
+            <div class="pdf-section">
+                <h3>2. Teilchenebene & Zeitraffer</h3>
+                <table class="pdf-table">
+                    <tr><th>Aktion</th><th>Details</th></tr>
+                    <tr><td>Interaktion mit der Simulation:</td><td><span id="pdf-out-timeline"></span> Bewegungen / Play-Klicks durchgeführt.</td></tr>
+                </table>
+            </div>
+
+            <div class="pdf-section">
+                <h3>3. Lernerfolgskontrolle (Buchaufgaben)</h3>
+                <div style="font-weight: bold; margin-bottom: 5px;" id="pdf-out-status"></div>
+                <table class="pdf-table">
+                    <tbody id="pdf-tasks-table">
+                        <!-- Wird dynamisch aus dem JS gefüllt -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <div style="margin-top: 20mm; border-top: 1px solid #ccc; padding-top: 5px; font-size: 10px; color: #777; text-align: center;">
+                Automatisch generiertes Protokoll • Virtuelles Chemielabor
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- GLOBALE VARIABLEN ---
+        let currentCourse = 'LK'; // Default
+        let track_c1 = 0;
+        let track_c2 = 0;
+        let track_slider_moves = 0;
+        let track_status = "";
+        let pdf_res = {}; 
+
+        // === NAVIGATION & KURSWAHL ===
+        function showStep(stepId) {
+            document.querySelectorAll('.step-container').forEach(el => el.classList.remove('active'));
+            document.getElementById(stepId).classList.add('active');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function selectCourse(course) {
+            currentCourse = course;
+            
+            // UI Anpassungen für Aufgaben
+            if(course === 'GK') {
+                document.getElementById('tasks-lk').style.display = 'none';
+                document.getElementById('tasks-gk').style.display = 'block';
+            } else {
+                document.getElementById('tasks-lk').style.display = 'block';
+                document.getElementById('tasks-gk').style.display = 'none';
+            }
+            
+            showStep('step1');
+        }
+
+        // === HILFSFUNKTIONEN ===
+        function calcPhHcl(c) { return -Math.log10(c); }
+        function calcPhAc(c) { return 0.5 * (4.75 - Math.log10(c)); }
+
+        // === SCHRITT 1 LOGIK ===
+        const cInp1 = document.getElementById('concentration1');
+        const cMan1 = document.getElementById('conc-manual1');
+        const uPh1 = document.getElementById('user-ph1');
+        const btn1 = document.getElementById('check-btn1');
+        const disp1 = document.getElementById('ph-display1');
+        const dev1 = document.getElementById('ph-meter-device1');
+        const feed1 = document.getElementById('feedback1');
+        const next1 = document.getElementById('btn-next1');
+
+        function syncStep1(e) {
+            let val = parseFloat(e.target.value);
+            if(e.target === cInp1) cMan1.value = val.toFixed(3);
+            else if(!isNaN(val)) cInp1.value = val;
+            disp1.classList.remove('on');
+            dev1.style.transform = "translateY(5px)";
+            feed1.innerHTML = "Konzentration geändert. Bitte neu berechnen.";
+            next1.style.display = 'none';
+        }
+        cInp1.addEventListener('input', syncStep1);
+        cMan1.addEventListener('input', syncStep1);
+
+        btn1.addEventListener('click', () => {
+            let c = parseFloat(cMan1.value) || 0.001;
+            track_c1 = c; 
+            let uPh = parseFloat(uPh1.value);
+            if(isNaN(uPh)) { feed1.innerHTML = "Bitte berechneten Wert eingeben!"; return; }
+            let aPh = calcPhHcl(c);
+            dev1.style.transform = "translateY(15px)";
+            disp1.textContent = aPh.toFixed(2);
+            disp1.classList.add('on');
+
+            if (Math.abs(aPh - uPh) <= 0.05) {
+                feed1.innerHTML = `<strong>Korrekt!</strong> pH = -log(${c}) = ${aPh.toFixed(2)}.`;
+                feed1.style.borderLeftColor = "#28a745";
+                next1.style.display = 'block';
+            } else {
+                feed1.innerHTML = `<strong>Falsch!</strong> Richtig wäre: pH = -log(${c}) = ${aPh.toFixed(2)}.`;
+                feed1.style.borderLeftColor = "#dc3545";
+            }
+        });
+        next1.addEventListener('click', () => showStep('step2'));
+
+        // === SCHRITT 2 LOGIK ===
+        const cInp2 = document.getElementById('concentration2');
+        const cMan2 = document.getElementById('conc-manual2');
+        const uPh2 = document.getElementById('user-ph2');
+        const btn2 = document.getElementById('check-btn2');
+        const disp2a = document.getElementById('ph-display2a');
+        const disp2b = document.getElementById('ph-display2b');
+        const dev2a = document.getElementById('ph-meter-device2a');
+        const dev2b = document.getElementById('ph-meter-device2b');
+        const feed2 = document.getElementById('feedback2');
+        const next2 = document.getElementById('btn-next2');
+        
+        document.getElementById('btn-back2').addEventListener('click', () => showStep('step1'));
+
+        function syncStep2(e) {
+            let val = parseFloat(e.target.value);
+            if(e.target === cInp2) cMan2.value = val.toFixed(3);
+            else if(!isNaN(val)) cInp2.value = val;
+            disp2a.classList.remove('on'); disp2b.classList.remove('on');
+            dev2a.style.transform = "translateY(5px)"; dev2b.style.transform = "translateY(5px)";
+            feed2.innerHTML = "Konzentration geändert. Bitte berechnen.";
+            next2.style.display = 'none';
+        }
+        cInp2.addEventListener('input', syncStep2);
+        cMan2.addEventListener('input', syncStep2);
+
+        btn2.addEventListener('click', () => {
+            let c = parseFloat(cMan2.value) || 0.001;
+            track_c2 = c; 
+            let uPh = parseFloat(uPh2.value);
+            if(isNaN(uPh)) { feed2.innerHTML = "Bitte berechneten Wert eingeben!"; return; }
+            
+            let aPhHcl = calcPhHcl(c);
+            let aPhAc = calcPhAc(c);
+
+            dev2a.style.transform = "translateY(15px)"; dev2b.style.transform = "translateY(15px)";
+            disp2a.textContent = aPhHcl.toFixed(2); disp2b.textContent = aPhAc.toFixed(2);
+            disp2a.classList.add('on'); disp2b.classList.add('on');
+
+            if (Math.abs(aPhHcl - uPh) <= 0.05) {
+                feed2.innerHTML = `<strong>Überraschung!</strong> Sie haben richtig gerechnet (${aPhHcl.toFixed(2)}), aber die Essigsäure hat einen viel höheren pH-Wert! Dies ist kein Rechenfehler.`;
+                feed2.style.borderLeftColor = "#ffc107";
+                next2.style.display = 'block';
+            } else {
+                feed2.innerHTML = `Das stimmt für die Salzsäure leider nicht. Rechnen Sie noch einmal nach: pH = -log(${c})`;
+                feed2.style.borderLeftColor = "#dc3545";
+            }
+        });
+        next2.addEventListener('click', () => { showStep('step3'); renderFinalState(parseInt(document.getElementById('timeline').value) || 0); });
+
+        // === SCHRITT 3 LOGIK ===
+        const timeline = document.getElementById('timeline');
+        const textInfo = document.getElementById('zeitraffer-text');
+        const liqHcl = document.getElementById('liquid-hcl');
+        const liqAc = document.getElementById('liquid-ch3cooh');
+        const areaHcl = document.getElementById('area-hcl');
+        const areaAc = document.getElementById('area-ac');
+        const playBtn = document.getElementById('play-btn');
+        const next3 = document.getElementById('btn-next3');
+        
+        document.getElementById('btn-back3').addEventListener('click', () => showStep('step2'));
+        next3.addEventListener('click', () => showStep('step4'));
+
+        const acDeprotonsAt = [1, 3, 6]; 
+        let playInterval; let isPlaying = false;
+        let last_slider_val = 0;
+
+        function updateText(t) {
+            if(t === 0) { textInfo.innerHTML = "<strong>Start:</strong> Klicken Sie auf 'Abspielen'."; next3.style.display = 'none'; } 
+            else if (t > 0 && t <= 2) { textInfo.innerHTML = "Beide Säuren geben Protonen ab."; next3.style.display = 'none'; } 
+            else if (t === 3) { textInfo.innerHTML = "Bisher verhalten sich beide Säuren gleich."; next3.style.display = 'none'; } 
+            else if (t > 3 && t < 8) { textInfo.innerHTML = "<strong>Achtung!</strong> Essigsäure-Moleküle reagieren nicht mehr."; next3.style.display = 'none'; } 
+            else if (t === 8) { 
+                
+                // Dynamischer Text je nach Kurs
+                if (currentCourse === 'LK') {
+                    textInfo.innerHTML = "<strong>Endstand:</strong> Essigsäure deprotoniert nicht vollständig (schwächere Säure). Bitte machen Sie die Aufgaben 2, 4, 5 (S.159), Aufg. 3 (S.160) und 4, 5 (S.161)."; 
+                } else {
+                    textInfo.innerHTML = "<strong>Endstand:</strong> Essigsäure deprotoniert nicht vollständig (schwächere Säure). Um mehr darüber zu erfahren, lesen Sie bitte die <strong>Seiten 132, 133 und 135</strong> (siehe PDF im itslearning-Kurs). Zur Anwendung bearbeiten Sie bitte die <strong>Aufgaben auf Seite 133 (1, 2a und 2b) sowie auf Seite 135 (1-3)</strong>."; 
+                }
+                
+                next3.style.display = 'block'; 
+            }
+        }
+
+        function renderFinalState(t) {
+            liqHcl.innerHTML = ''; liqAc.innerHTML = '';
+            for(let i = 1; i <= t; i++) {
+                liqHcl.innerHTML += `<div class="molecule-group"><div class="particle h3o">H₃O⁺</div><div class="particle cl">Cl⁻</div></div>`;
+                if (acDeprotonsAt.includes(i)) liqAc.innerHTML += `<div class="molecule-group"><div class="particle h3o">H₃O⁺</div><div class="particle ch3coo">CH₃COO⁻</div></div>`;
+                else liqAc.innerHTML += `<div class="molecule-group"><div class="particle ch3cooh">CH₃COOH</div></div>`;
+            }
+            updateText(t);
+        }
+
+        function dropMolecule(t) {
+            renderFinalState(t - 1);
+            updateText(t);
+            const dropHcl = document.createElement('div'); dropHcl.className = 'falling-drop'; dropHcl.textContent = 'HCl'; areaHcl.appendChild(dropHcl);
+            const dropAc = document.createElement('div'); dropAc.className = 'falling-drop'; dropAc.textContent = 'CH₃COOH'; areaAc.appendChild(dropAc);
+            setTimeout(() => {
+                if (areaHcl.contains(dropHcl)) areaHcl.removeChild(dropHcl);
+                if (areaAc.contains(dropAc)) areaAc.removeChild(dropAc);
+                renderFinalState(t);
+            }, 600);
+        }
+
+        timeline.addEventListener('change', (e) => { 
+            let val = parseInt(e.target.value);
+            if(val !== last_slider_val) { track_slider_moves++; last_slider_val = val; }
+        });
+        timeline.addEventListener('input', (e) => { renderFinalState(parseInt(e.target.value)); });
+
+        playBtn.addEventListener('click', () => {
+            if (isPlaying) return;
+            track_slider_moves++; 
+            let current = parseInt(timeline.value);
+            if (current >= 8) { current = 0; timeline.value = 0; renderFinalState(0); }
+            isPlaying = true; playBtn.disabled = true; timeline.disabled = true; playBtn.textContent = "⏳ Läuft..."; next3.style.display = 'none';
+            playInterval = setInterval(() => {
+                current++;
+                if (current <= 8) { timeline.value = current; last_slider_val = current; dropMolecule(current); } 
+                else { clearInterval(playInterval); isPlaying = false; playBtn.disabled = false; timeline.disabled = false; playBtn.textContent = "▶ Abspielen"; }
+            }, 1200); 
+        });
+
+        // === SCHRITT 4 LOGIK (Überprüfung) ===
+        document.getElementById('btn-back4').addEventListener('click', () => showStep('step3'));
+        document.getElementById('btn-giveup').addEventListener('click', () => {
+            track_status = "❌ Aufgaben wurden abgebrochen / Nicht gelöst";
+            pdf_res = { "Alle Aufgaben": "Übersprungen" };
+            showStep('step5');
+        });
+        
+        // Logik für Deaktivierung der Eingabefelder
+        const checkBoxes = [
+            { check: 'lk_giveup1', inputs: ['lk_ans1'] },
+            { check: 'lk_giveup2', inputs: ['lk_ans2'] },
+            { check: 'lk_giveup3', inputs: ['lk_ans3'] },
+            { check: 'lk_giveup4', inputs: ['lk_ans4'] },
+            { check: 'lk_giveup5', inputs: ['lk_ans5_base', 'lk_ans5_exp'] },
+            
+            { check: 'gk_giveup1', inputs: ['gk_ans1'] },
+            { check: 'gk_giveup2', inputs: ['gk_ans2_base', 'gk_ans2_exp'] },
+            { check: 'gk_giveup3', inputs: ['gk_ans3'] },
+            { check: 'gk_giveup4', inputs: ['gk_ans4_base', 'gk_ans4_exp'] },
+            { check: 'gk_giveup5', inputs: ['gk_ans5_base', 'gk_ans5_exp'] },
+            { check: 'gk_giveup6', inputs: ['gk_ans6_base', 'gk_ans6_exp'] },
+            { check: 'gk_giveup7', inputs: ['gk_ans7_base', 'gk_ans7_exp'] }
+        ];
+
+        checkBoxes.forEach(item => {
+            let cb = document.getElementById(item.check);
+            if(cb) {
+                cb.addEventListener('change', (e) => {
+                    item.inputs.forEach(id => {
+                        let el = document.getElementById(id);
+                        if(el) {
+                            el.disabled = e.target.checked;
+                            if(e.target.checked) el.value = ""; 
+                        }
+                    });
+                });
+            }
+        });
+
+        // --- VALIDIERUNGSFUNKTIONEN ---
+        let errors = [];
+        let givenUpCount = 0;
+
+        function checkFloatTask(inputId, checkId, correctValue, tol, taskName) {
+            const isGivenUp = document.getElementById(checkId).checked;
+            if (isGivenUp) {
+                givenUpCount++;
+                pdf_res[taskName] = "Nicht gelöst";
+                return true;
+            }
+            const val = parseFloat(document.getElementById(inputId).value);
+            if (isNaN(val)) return null; 
+            if (Math.abs(val - correctValue) <= tol) {
+                pdf_res[taskName] = val;
+                return true;
+            }
+            errors.push(taskName);
+            pdf_res[taskName] = val;
+            return false;
+        }
+
+        function checkSciTask(baseId, expId, checkId, correctBase, correctExp, tol, taskName) {
+            const isGivenUp = document.getElementById(checkId).checked;
+            if (isGivenUp) {
+                givenUpCount++;
+                pdf_res[taskName] = "Nicht gelöst";
+                return true;
+            }
+            const b = parseFloat(document.getElementById(baseId).value);
+            const e = parseInt(document.getElementById(expId).value);
+            if (isNaN(b) || isNaN(e)) return null;
+            if (Math.abs(b - correctBase) <= tol && e === correctExp) {
+                pdf_res[taskName] = `${b} * 10^${e}`;
+                return true;
+            }
+            errors.push(taskName);
+            pdf_res[taskName] = `${b} * 10^${e}`;
+            return false;
+        }
+
+        // Haupt-Prüfen-Button
+        document.getElementById('check-btn4').addEventListener('click', () => {
+            errors = [];
+            givenUpCount = 0;
+            pdf_res = {};
+            let totalTasks = 0;
+            let checkResults = [];
+
+            if (currentCourse === 'LK') {
+                totalTasks = 5;
+                checkResults.push(checkFloatTask('lk_ans1', 'lk_giveup1', -6.8, 0.1, 'A2.1 (Ks = 10^6,8)'));
+                checkResults.push(checkFloatTask('lk_ans2', 'lk_giveup2', 14.3, 0.1, 'A2.2 (Ks = 10^-14,3)'));
+                checkResults.push(checkFloatTask('lk_ans3', 'lk_giveup3', 10.25, 0.1, 'A2.3 (Ks = 5,6*10^-11)'));
+                checkResults.push(checkFloatTask('lk_ans4', 'lk_giveup4', 1.92, 0.1, 'A2.4 (Ks = 1,2*10^-2)'));
+                checkResults.push(checkSciTask('lk_ans5_base', 'lk_ans5_exp', 'lk_giveup5', 3.16, -7, 0.1, 'A3 (Autoprotolyse)'));
+            } else {
+                totalTasks = 7;
+                checkResults.push(checkFloatTask('gk_ans1', 'gk_giveup1', 0.0125, 0.005, 'S.133 A2b: Ks(HSO₄⁻)'));
+                checkResults.push(checkSciTask('gk_ans2_base', 'gk_ans2_exp', 'gk_giveup2', 8, -13, 0.2, 'S.133 A2b: KB(SO₄²⁻)'));
+                checkResults.push(checkFloatTask('gk_ans3', 'gk_giveup3', 20.89, 0.5, 'S.135 A1: Ks(HNO₃)'));
+                checkResults.push(checkSciTask('gk_ans4_base', 'gk_ans4_exp', 'gk_giveup4', 2.51, -4, 0.1, 'S.135 A1: KB(CO₃²⁻)'));
+                checkResults.push(checkSciTask('gk_ans5_base', 'gk_ans5_exp', 'gk_giveup5', 1.78, -5, 0.1, 'S.135 A1: KB(NH₃)'));
+                checkResults.push(checkSciTask('gk_ans6_base', 'gk_ans6_exp', 'gk_giveup6', 1, -13, 0.1, 'S.135 A1: Ks(HS⁻)'));
+                checkResults.push(checkSciTask('gk_ans7_base', 'gk_ans7_exp', 'gk_giveup7', 8.32, -8, 0.1, 'S.135 A1: KB(HS⁻)'));
+            }
+
+            const feedback4 = document.getElementById('feedback4');
+
+            if (checkResults.includes(null)) {
+                feedback4.innerHTML = "Bitte füllen Sie <strong>alle</strong> Felder aus oder markieren Sie sie als 'nicht gelöst'.";
+                feedback4.style.borderLeftColor = "#ffc107";
+                return;
+            }
+
+            const allValidOrGivenUp = checkResults.every(r => r === true);
+
+            if (allValidOrGivenUp) {
+                if (givenUpCount === 0) {
+                    track_status = "✅ Alle Aufgaben korrekt gelöst";
+                } else if (givenUpCount === totalTasks) {
+                    track_status = "❌ Alle Aufgaben wurden übersprungen";
+                } else {
+                    track_status = `⚠️ Teilweise gelöst (${givenUpCount} übersprungen)`;
+                }
+                showStep('step5');
+            } else {
+                feedback4.innerHTML = "<strong>Leider noch Fehler.</strong> Bitte überprüfen: " + errors.join(", ");
+                feedback4.style.borderLeftColor = "#dc3545";
+            }
+        });
+
+        // === SCHRITT 5 LOGIK (PDF Generierung) ===
+        function generatePDF() {
+            const nameInput = document.getElementById('student-name').value.trim();
+            if (!nameInput) { alert("Bitte trage deinen Namen ein!"); return; }
+
+            // 1. Statische Daten einfügen
+            document.getElementById('pdf-out-name').innerText = nameInput;
+            document.getElementById('pdf-out-course').innerText = currentCourse;
+            document.getElementById('pdf-out-c1').innerText = track_c1.toFixed(3) + " mol/l";
+            document.getElementById('pdf-out-c2').innerText = track_c2.toFixed(3) + " mol/l";
+            document.getElementById('pdf-out-timeline').innerText = track_slider_moves;
+            
+            const statEl = document.getElementById('pdf-out-status');
+            statEl.innerText = track_status;
+            if(track_status.includes("✅")) statEl.style.color = "#27ae60";
+            else if(track_status.includes("⚠️")) statEl.style.color = "#f39c12";
+            else statEl.style.color = "#c0392b";
+
+            // 2. Tabelle für Aufgaben dynamisch füllen
+            const table = document.getElementById('pdf-tasks-table');
+            table.innerHTML = `<tr><th>Aufgabe</th><th>Eingegebener Wert / Status</th></tr>`;
+            for (const [taskName, taskValue] of Object.entries(pdf_res)) {
+                table.innerHTML += `<tr><td>${taskName}</td><td>${taskValue}</td></tr>`;
+            }
+
+            // 3. PDF Generierung starten
+            const element = document.getElementById('pdf-template');
+            const opt = {
+                margin:       0,
+                filename:     `Lernprotokoll_${currentCourse}_${nameInput.replace(/\s+/g, '_')}.pdf`,
+                image:        { type: 'jpeg', quality: 1 },
+                html2canvas:  { scale: 2, scrollX: 0, scrollY: 0 },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            html2pdf().set(opt).from(element).save();
+        }
+
+    </script>
+</body>
+</html>
